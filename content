@@ -1,0 +1,80 @@
+#!/usr/bin/python
+import json
+from pathlib import Path
+import argparse
+from os import listdir, getcwd
+from os.path import relpath
+
+#global setup of arg parser
+#setup the argument parser
+parser = argparse.ArgumentParser()
+
+#input directory
+parser.add_argument("directory", help="input directory, if not specified, current directory")
+
+#REQUEST: Add compatibility for posix or window path type
+
+#file type(s) option
+parser.add_argument("-e","--extension", help="Indicate file extension to be processed. If not specified default is all (*)")
+
+#output file (with implied type)
+parser.add_argument("-o","--output", help="Specify output filename (JSON only currently), default is ./manifest.json")
+
+#absolute or relative path option
+parser.add_argument("-rel", "--relative", help="Use relative path, include what directory to start from")
+
+parser.add_argument("-abs", "--absolute", help="Use absolute path to prepend to files", action="store_true")
+
+args = parser.parse_args()
+
+# argument constants
+directory = args.directory
+file_output = args.output
+extension = args.extension or '*'
+rel_path_start = args.relative
+absolute = args.absolute
+
+#function definitions
+
+# get list of files
+def get_list_files(extension = "*", directory = './', path = (relpath(directory, getcwd()))):
+    #get list of all files if extension is *
+    if extension == '*':
+        temp = ((path + '/' + f) for f in listdir(str(directory)) if f)
+    else:
+        temp = ((path + '/' + f) for f in listdir(str(directory)) if f.endswith('.' + extension))
+    filelist = list(temp)
+    return filelist
+# set and write the json
+def set_json(filelist, output = 'manifest.json'):
+    print(output)
+    with open(output, 'w', encoding='utf-8') as f:
+        json.dump(filelist, f, ensure_ascii=False, indent=4)
+
+
+# main function
+def main():
+
+    # get files from directory
+    # REQUEST: wrap switches inside get_list_files function to cleanup main function
+    if rel_path_start:
+        # change relative path from command line into absolute path for the sake of calcualting relpath
+        resolved_path = Path(rel_path_start).resolve()
+        #store value of relative path
+        rel = relpath(directory, resolved_path)
+        fileslist = get_list_files(extension, directory, rel)
+    elif absolute:
+        fileslist = get_list_files(extension, directory, absolute)
+    else:
+        filelist = get_list_files(extension, directory)
+
+    # maybe make a switch for windows paths and posix paths
+
+    # create json
+    if file_output:
+        set_json(fileslist, file_output)
+    else:
+        set_json(fileslist)
+    return 0
+
+main()
